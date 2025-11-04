@@ -33,6 +33,13 @@ header h1 {
     font-weight: 600;
 }
 
+header p {
+    color: #666;
+    font-size: 1rem;
+    margin-top: 8px;
+    font-style: italic;
+}
+
 .controls {
     display: flex;
     flex-direction: column;
@@ -46,14 +53,56 @@ header h1 {
     gap: 8px;
 }
 
-.input-group label {
-    font-weight: 500;
-    color: #555;
-    font-size: 0.95rem;
+/* Data source specific styling */
+#asana-group, #airtable-group, #github-group, #azure-devops-group, #jira-group {
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
 }
 
-.input-group input,
-.input-group select {
+#asana-group {
+    border-left: 4px solid #f06a6a;
+}
+
+#airtable-group {
+    border-left: 4px solid #ffbf47;
+}
+
+#github-group {
+    border-left: 4px solid #24292e;
+}
+
+#azure-devops-group {
+    border-left: 4px solid #0078d4;
+}
+
+#jira-group {
+    border-left: 4px solid #0052cc;
+}
+
+#asana-group label, #airtable-group label, #github-group label, #azure-devops-group label, #jira-group label {
+    color: #495057;
+    font-weight: 500;
+}
+
+/* Form field and button row styling */
+.field-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 15px;
+}
+
+.field-row label {
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 0;
+}
+
+.field-row input,
+.field-row select {
+    width: 100%;
     padding: 12px 16px;
     border: 2px solid #e0e0e0;
     border-radius: 8px;
@@ -61,13 +110,80 @@ header h1 {
     transition: border-color 0.3s ease;
 }
 
-.input-group input:focus,
-.input-group select:focus {
+.field-row input:focus,
+.field-row select:focus {
     outline: none;
     border-color: #667eea;
 }
 
-.input-group button {
+.button-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+
+.button-row button {
+    padding: 12px 24px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.button-row button:hover {
+    background: #5a6fd8;
+    transform: translateY(-1px);
+}
+
+.button-row button:active {
+    transform: translateY(0);
+}
+
+/* Jira specific form styling */
+#jira-group select {
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1rem;
+    background: white;
+    color: #333;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+}
+
+#jira-group select:focus {
+    outline: none;
+    border-color: #0052cc;
+}
+
+.input-group label {
+    font-weight: 500;
+    color: #555;
+    font-size: 0.95rem;
+}
+
+/* Legacy input styling for backwards compatibility */
+.input-group > input,
+.input-group > select {
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+}
+
+.input-group > input:focus,
+.input-group > select:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+/* Legacy button styling for backwards compatibility */
+.input-group > button {
     padding: 12px 24px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
@@ -80,22 +196,22 @@ header h1 {
     margin-top: 8px;
 }
 
-.input-group button:hover {
+.input-group > button:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
-.input-group button:active {
+.input-group > button:active {
     transform: translateY(0);
 }
 
-.input-group button:disabled {
+.input-group > button:disabled {
     background: #ccc;
     cursor: not-allowed;
     transform: none;
 }
 
-.input-group select:disabled {
+.input-group > select:disabled {
     background: #f5f5f5;
     cursor: not-allowed;
 }
