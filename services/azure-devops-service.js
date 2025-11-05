@@ -300,12 +300,18 @@ class AzureDevOpsService {
         }
         
         // Handle Azure DevOps field syntax like fields["System.Title"]
-        let processedPath = path;
+        // Check if this is a fields["FieldName"] pattern
+        const fieldsPattern = /^fields\["([^"]+)"\]$/;
+        const match = path.match(fieldsPattern);
         
-        // Convert fields["FieldName"] to fields.FieldName for easier processing
-        processedPath = processedPath.replace(/\["([^"]+)"\]/g, '.$1');
+        if (match) {
+            // Direct access to fields object with the field name as key
+            const fieldName = match[1];
+            return obj.fields && obj.fields[fieldName];
+        }
         
-        return processedPath.split('.').reduce((current, key) => {
+        // Handle regular dot notation for other paths
+        return path.split('.').reduce((current, key) => {
             if (current && typeof current === 'object') {
                 return current[key];
             }
@@ -393,13 +399,27 @@ class AzureDevOpsService {
     /**
      * Format date for Gantt chart (convert to MM-DD-YYYY)
      * @param {string} dateString - Date string
-     * @returns {string|null} Formatted date string or null
+     * @returns {string} Formatted date string (never null)
      */
     formatDate(dateString) {
-        if (!dateString) return null;
+        // If dateString is null/undefined/empty, use today's date
+        if (!dateString) {
+            const today = new Date();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const year = today.getFullYear();
+            return `${month}-${day}-${year}`;
+        }
         
         const date = new Date(dateString);
-        if (isNaN(date.getTime())) return null;
+        // If invalid date, use today's date
+        if (isNaN(date.getTime())) {
+            const today = new Date();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const year = today.getFullYear();
+            return `${month}-${day}-${year}`;
+        }
         
         // Convert to MM-DD-YYYY format
         const month = String(date.getMonth() + 1).padStart(2, '0');
