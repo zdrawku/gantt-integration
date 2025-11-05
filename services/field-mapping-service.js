@@ -8,7 +8,8 @@ class FieldMappingService {
             { key: 'endTime', type: 'date', required: true, description: 'End date/time of the task' },
             { key: 'progress', type: 'number', required: false, description: 'Task completion progress (0-100)' },
             { key: 'parentId', type: 'string', required: false, description: 'ID of the parent task' },
-            { key: 'dependencies', type: 'array', required: false, description: 'Array of task IDs this task depends on' }
+            { key: 'dependency', type: 'string', required: false, description: 'ID of the task this task depends on' },
+            { key: 'type', type: 'string', required: false, description: 'Type of item: task or milestone' }
         ];
         
         // Default mappings for different data sources
@@ -19,8 +20,9 @@ class FieldMappingService {
                 'startTime': 'start_on',
                 'endTime': 'due_on',
                 'progress': 'completed_percentage',
-                'parentId': 'parent.gid',
-                'dependencies': 'dependencies'
+                'parentId': 'dependencies[0].gid',
+                'dependency': 'dependencies[0].gid',
+                'type': 'type' // Will be determined based on due_on presence
             },
             airtable: {
                 'id': 'id',
@@ -29,7 +31,8 @@ class FieldMappingService {
                 'endTime': 'End Date',
                 'progress': 'Progress',
                 'parentId': 'Parent Task',
-                'dependencies': 'Dependencies'
+                'dependency': 'Dependency',
+                'type': 'Type'
             },
             github: {
                 'id': 'id',
@@ -38,7 +41,8 @@ class FieldMappingService {
                 'endTime': 'targetDate',
                 'progress': 'progress',
                 'parentId': 'parent',
-                'dependencies': 'dependencies'
+                'dependency': 'dependency',
+                'type': 'type'
             },
             'azure-devops': {
                 'id': 'id',
@@ -47,7 +51,8 @@ class FieldMappingService {
                 'endTime': 'fields["Microsoft.VSTS.Scheduling.TargetDate"]',
                 'progress': 'progress',
                 'parentId': 'fields["System.Parent"]',
-                'dependencies': 'dependencies'
+                'dependency': 'dependency',
+                'type': 'type'
             },
             jira: {
                 'id': 'key',
@@ -56,7 +61,8 @@ class FieldMappingService {
                 'endTime': 'fields.duedate',
                 'progress': 'fields.progress.percent',
                 'parentId': 'fields.parent.key',
-                'dependencies': 'dependencies'
+                'dependency': 'dependency',
+                'type': 'type'
             }
         };
         
@@ -273,7 +279,8 @@ class FieldMappingService {
                         'endtime': ['end', 'due', 'finish', 'to', 'target', 'close'],
                         'progress': ['complete', 'percent', '%', 'done'],
                         'parentid': ['parent', 'super', 'epic'],
-                        'dependencies': ['depend', 'prerequisite', 'requires', 'blocks']
+                        'dependency': ['depend', 'prerequisite', 'requires', 'blocks'],
+                        'type': ['type', 'kind', 'category', 'itemtype']
                     };
                     
                     const ganttPatterns = patterns[ganttKey] || [];

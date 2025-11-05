@@ -15,7 +15,8 @@ class AsanaService {
             { key: 'completed_at', type: 'datetime', description: 'Time at which task was completed' },
             { key: 'parent', type: 'object', description: 'Parent task (contains gid)' },
             { key: 'parent.gid', type: 'string', description: 'Globally unique identifier of parent task' },
-            { key: 'dependencies', type: 'array', description: 'Array of tasks this task depends on' },
+            { key: 'dependencies', type: 'array', description: 'Array of tasks this task depends on (each has gid)' },
+            { key: 'dependencies[0].gid', type: 'string', description: 'GID of first dependency (used as parentId)' },
             { key: 'dependents', type: 'array', description: 'Array of tasks that depend on this task' },
             { key: 'assignee', type: 'object', description: 'User this task is assigned to' },
             { key: 'assignee.name', type: 'string', description: 'Name of the assignee' },
@@ -194,7 +195,17 @@ class AsanaService {
         if (!path || typeof path !== 'string') {
             return undefined;
         }
-        return path.split('.').reduce((current, key) => current?.[key], obj);
+        
+        // Handle array indexing in paths like "dependencies[0].gid"
+        return path.split('.').reduce((current, key) => {
+            // Check if key contains array indexing
+            const arrayMatch = key.match(/^([^[]+)\[(\d+)\]$/);
+            if (arrayMatch) {
+                const [, arrayKey, index] = arrayMatch;
+                return current?.[arrayKey]?.[parseInt(index)];
+            }
+            return current?.[key];
+        }, obj);
     }
     
     /**
@@ -215,9 +226,17 @@ class AsanaService {
             // avoid processing same task twice
             if (taskMap.has(taskId)) return;
             
-            // Determine parent from parameter or Asana parent field
+            // Determine parent from parameter, dependencies, or Asana parent field
             const parentField = fieldMappings['parentId'] || 'parent.gid';
-            const parentGid = parentId || this.getNestedValue(task, parentField) || null;
+            let parentGid = parentId || this.getNestedValue(task, parentField) || null;
+            
+            // If no parent from hierarchy, check if this task has dependencies
+            // and use the first dependency as the parent for Gantt display
+            if (!parentGid && task.dependencies && task.dependencies.length > 0) {
+                // Use the first dependency as the parent
+                const firstDependency = task.dependencies[0];
+                parentGid = firstDependency.gid || firstDependency;
+            }
             
             // Get start and end date fields
             const startField = fieldMappings['startTime'] || 'start_on';
@@ -225,7 +244,10 @@ class AsanaService {
             const startValue = this.getNestedValue(task, startField);
             const endValue = this.getNestedValue(task, endField);
             
-            // Skip tasks without dates
+            // Determine if this is a milestone (no start_on but has due_on) or regular task
+            const isMilestone = !startValue && endValue;
+            
+            // Skip tasks without any dates
             if (!startValue && !endValue) {
                 // still record mapping so children can reference parent even if parent has no dates
                 if (parentGid && !taskMap.has(taskId)) {
@@ -239,16 +261,23 @@ class AsanaService {
                 const ganttTask = {
                     id: taskId,
                     name: this.getNestedValue(task, nameField) || 'Untitled Task',
-                    startTime: this.formatDate(startValue || endValue),
+                    // For milestones, use due date for both start and end
+                    startTime: this.formatDate(isMilestone ? endValue : (startValue || endValue)),
                     endTime: this.formatDate(endValue || startValue),
-                    progress: task.completed ? 100 : (this.getNestedValue(task, progressField) || 0)
+                    progress: task.completed ? 100 : (this.getNestedValue(task, progressField) || 0),
+                    type: isMilestone ? 'milestone' : 'task'
                 };
                 
                 // Attach parentId when known
                 if (parentGid) {
                     ganttTask.parentId = parentGid;
-                    // also expose as dependencies for Gantt libs that use that field
-                    ganttTask.dependencies = [parentGid];
+                }
+                
+                // Set dependency for Gantt libs that use dependency field (singular)
+                if (task.dependencies && task.dependencies.length > 0) {
+                    // Use the first dependency for the singular dependency field
+                    const firstDep = task.dependencies[0];
+                    ganttTask.dependency = firstDep.gid || firstDep;
                 }
                 
                 ganttSeries.push(ganttTask);

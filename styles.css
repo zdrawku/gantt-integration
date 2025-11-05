@@ -531,3 +531,95 @@ header p {
         transform: rotate(90deg);
     }
 }
+
+/* Data Grid Section Styling */
+.data-grid-section {
+    margin-top: 40px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border: 1px solid #e9ecef;
+}
+
+.data-grid-section h3 {
+    margin: 0 0 20px 0;
+    color: #333;
+    font-size: 1.4rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.data-grid-section h3::before {
+    content: "📊";
+    font-size: 1.2rem;
+}
+
+#grid-container {
+    min-height: 300px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+#grid-container .apexcharts-canvas {
+    border-radius: 8px;
+}
+
+/* Hide grid section when no data */
+.data-grid-section.hidden {
+    display: none;
+}
+
+/* Data Table Styling */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    font-size: 0.9rem;
+}
+
+.data-table th,
+.data-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.data-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.data-table tr:hover {
+    background: #f8f9fa;
+}
+
+.data-table td {
+    color: #333;
+}
+
+/* Make the table scrollable horizontally on small screens */
+@media (max-width: 768px) {
+    #grid-container {
+        overflow-x: auto;
+    }
+    
+    .data-table {
+        min-width: 800px;
+    }
+    
+    .data-table th,
+    .data-table td {
+        padding: 8px 12px;
+        font-size: 0.8rem;
+    }
+}

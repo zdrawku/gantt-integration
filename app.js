@@ -11,6 +11,7 @@ class ProjectGanttApp {
         // Current state
         this.currentDataSource = null;
         this.ganttInstance = null;
+        this.gridInstance = null;
         
         // DOM elements
         this.initDOMElements();
@@ -64,6 +65,8 @@ class ProjectGanttApp {
         this.loadingDiv = document.getElementById('loading');
         this.errorDiv = document.getElementById('error-message');
         this.ganttContainer = document.getElementById('gantt-container');
+        this.gridContainer = document.getElementById('grid-container');
+        this.dataGridSection = document.querySelector('.data-grid-section');
         
         // Mapping dialog elements
         this.openMappingBtn = document.getElementById('open-mapping-btn');
@@ -682,6 +685,107 @@ class ProjectGanttApp {
         this.ganttInstance = new ApexGantt(this.ganttContainer, ganttOptions);
         this.ganttInstance.render();
         this.ganttContainer.style.display = 'block';
+        
+        // Also render the data grid
+        this.renderGrid(data);
+    }
+    
+    renderGrid(data) {
+        this.clearGrid();
+        
+        if (!data || data.length === 0) {
+            this.dataGridSection.classList.add('hidden');
+            return;
+        }
+        
+        // Prepare grid data - flatten the task data for tabular display
+        const gridData = data.map(task => ({
+            ID: task.id || 'N/A',
+            Name: task.name || 'Untitled',
+            'Start Date': task.startTime ? this.formatDateForGrid(task.startTime) : 'N/A',
+            'End Date': task.endTime ? this.formatDateForGrid(task.endTime) : 'N/A',
+            'Progress (%)': task.progress || 0,
+            'Parent ID': task.parentId || 'None',
+            'Dependency': task.dependency || 'None',
+            'Type': task.type || 'Task',
+            'Status': this.getStatusFromProgress(task.progress)
+        }));
+        
+        // Create a simple HTML table since ApexCharts doesn't have a native grid component
+        this.createDataTable(gridData);
+        this.dataGridSection.classList.remove('hidden');
+    }
+    
+    createDataTable(data) {
+        if (data.length === 0) return;
+        
+        const table = document.createElement('table');
+        table.className = 'data-table';
+        
+        // Create header
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        
+        Object.keys(data[0]).forEach(key => {
+            const th = document.createElement('th');
+            th.textContent = key;
+            headerRow.appendChild(th);
+        });
+        
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+        
+        // Create body
+        const tbody = document.createElement('tbody');
+        
+        data.forEach(row => {
+            const tr = document.createElement('tr');
+            
+            Object.values(row).forEach(value => {
+                const td = document.createElement('td');
+                td.textContent = value;
+                tr.appendChild(td);
+            });
+            
+            tbody.appendChild(tr);
+        });
+        
+        table.appendChild(tbody);
+        this.gridContainer.appendChild(table);
+    }
+    
+    formatDateForGrid(dateString) {
+        if (!dateString) return 'N/A';
+        
+        try {
+            // Handle MM-DD-YYYY format from Asana service
+            const parts = dateString.split('-');
+            if (parts.length === 3) {
+                const [month, day, year] = parts;
+                const date = new Date(year, month - 1, day);
+                return date.toLocaleDateString();
+            }
+            
+            // Fallback to direct parsing
+            const date = new Date(dateString);
+            return isNaN(date.getTime()) ? dateString : date.toLocaleDateString();
+        } catch (error) {
+            return dateString;
+        }
+    }
+    
+    getStatusFromProgress(progress) {
+        if (progress >= 100) return 'Completed';
+        if (progress > 0) return 'In Progress';
+        return 'Not Started';
+    }
+    
+    clearGrid() {
+        if (this.gridInstance) {
+            this.gridInstance.destroy();
+            this.gridInstance = null;
+        }
+        this.gridContainer.innerHTML = '';
     }
     
     clearGantt() {
@@ -691,6 +795,10 @@ class ProjectGanttApp {
         }
         this.ganttContainer.innerHTML = '';
         this.ganttContainer.style.display = 'none';
+        
+        // Also clear the grid
+        this.clearGrid();
+        this.dataGridSection.classList.add('hidden');
     }
 }
 
