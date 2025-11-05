@@ -18,6 +18,7 @@ class ProjectGanttApp {
         
         // Initialize
         this.initEventListeners();
+        this.loadSavedCredentials();
     }
     
     initDOMElements() {
@@ -28,6 +29,7 @@ class ProjectGanttApp {
         this.asanaGroup = document.getElementById('asana-group');
         this.asanaPatInput = document.getElementById('asana-pat-input');
         this.asanaConnectBtn = document.getElementById('asana-connect-btn');
+        this.asanaClearBtn = document.getElementById('asana-clear-btn');
         
         // Airtable elements
         this.airtableGroup = document.getElementById('airtable-group');
@@ -35,6 +37,7 @@ class ProjectGanttApp {
         this.airtableBaseIdInput = document.getElementById('airtable-base-id-input');
         this.airtableTableNameInput = document.getElementById('airtable-table-name-input');
         this.airtableConnectBtn = document.getElementById('airtable-connect-btn');
+        this.airtableClearBtn = document.getElementById('airtable-clear-btn');
         
         // GitHub elements
         this.githubGroup = document.getElementById('github-group');
@@ -42,6 +45,7 @@ class ProjectGanttApp {
         this.githubOwnerInput = document.getElementById('github-owner-input');
         this.githubRepoInput = document.getElementById('github-repo-input');
         this.githubConnectBtn = document.getElementById('github-connect-btn');
+        this.githubClearBtn = document.getElementById('github-clear-btn');
         
         // Azure DevOps elements
         this.azureDevOpsGroup = document.getElementById('azure-devops-group');
@@ -49,6 +53,7 @@ class ProjectGanttApp {
         this.azureDevOpsOrgInput = document.getElementById('azure-devops-org-input');
         this.azureDevOpsProjectInput = document.getElementById('azure-devops-project-input');
         this.azureDevOpsConnectBtn = document.getElementById('azure-devops-connect-btn');
+        this.azureDevOpsClearBtn = document.getElementById('azure-devops-clear-btn');
         
         // Jira elements
         this.jiraGroup = document.getElementById('jira-group');
@@ -57,6 +62,7 @@ class ProjectGanttApp {
         this.jiraTokenInput = document.getElementById('jira-token-input');
         this.jiraTypeSelect = document.getElementById('jira-type-select');
         this.jiraConnectBtn = document.getElementById('jira-connect-btn');
+        this.jiraClearBtn = document.getElementById('jira-clear-btn');
         
         // Common elements
         this.projectGroup = document.getElementById('project-group');
@@ -86,30 +92,35 @@ class ProjectGanttApp {
         this.asanaPatInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.handleAsanaConnect();
         });
+        this.asanaClearBtn.addEventListener('click', () => this.handleClearCredentials('asana'));
         
         // Airtable connection
         this.airtableConnectBtn.addEventListener('click', () => this.handleAirtableConnect());
         this.airtableTableNameInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.handleAirtableConnect();
         });
+        this.airtableClearBtn.addEventListener('click', () => this.handleClearCredentials('airtable'));
         
         // GitHub connection
         this.githubConnectBtn.addEventListener('click', () => this.handleGitHubConnect());
         this.githubRepoInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.handleGitHubConnect();
         });
+        this.githubClearBtn.addEventListener('click', () => this.handleClearCredentials('github'));
         
         // Azure DevOps connection
         this.azureDevOpsConnectBtn.addEventListener('click', () => this.handleAzureDevOpsConnect());
         this.azureDevOpsProjectInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.handleAzureDevOpsConnect();
         });
+        this.azureDevOpsClearBtn.addEventListener('click', () => this.handleClearCredentials('azure-devops'));
         
         // Jira connection
         this.jiraConnectBtn.addEventListener('click', () => this.handleJiraConnect());
         this.jiraTokenInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.handleJiraConnect();
         });
+        this.jiraClearBtn.addEventListener('click', () => this.handleClearCredentials('jira'));
         
         // Project/table selection
         this.projectSelect.addEventListener('change', (e) => this.handleProjectChange(e.target.value));
@@ -126,6 +137,123 @@ class ProjectGanttApp {
                 this.closeMappingDialog();
             }
         });
+    }
+    
+    // Local Storage Management
+    saveCredentials(dataSource, credentials) {
+        try {
+            const key = `gantt_${dataSource}_credentials`;
+            localStorage.setItem(key, JSON.stringify(credentials));
+        } catch (error) {
+            console.warn('Failed to save credentials to localStorage:', error);
+        }
+    }
+    
+    loadCredentials(dataSource) {
+        try {
+            const key = `gantt_${dataSource}_credentials`;
+            const saved = localStorage.getItem(key);
+            return saved ? JSON.parse(saved) : null;
+        } catch (error) {
+            console.warn('Failed to load credentials from localStorage:', error);
+            return null;
+        }
+    }
+    
+    clearCredentials(dataSource) {
+        try {
+            const key = `gantt_${dataSource}_credentials`;
+            localStorage.removeItem(key);
+        } catch (error) {
+            console.warn('Failed to clear credentials from localStorage:', error);
+        }
+    }
+    
+    loadSavedCredentials() {
+        // Load and populate saved credentials for all data sources
+        
+        // Asana
+        const asanaCredentials = this.loadCredentials('asana');
+        if (asanaCredentials && asanaCredentials.pat) {
+            this.asanaPatInput.value = asanaCredentials.pat;
+        }
+        
+        // Airtable
+        const airtableCredentials = this.loadCredentials('airtable');
+        if (airtableCredentials) {
+            if (airtableCredentials.apiKey) this.airtableApiKeyInput.value = airtableCredentials.apiKey;
+            if (airtableCredentials.baseId) this.airtableBaseIdInput.value = airtableCredentials.baseId;
+            if (airtableCredentials.tableName) this.airtableTableNameInput.value = airtableCredentials.tableName;
+        }
+        
+        // GitHub
+        const githubCredentials = this.loadCredentials('github');
+        if (githubCredentials) {
+            if (githubCredentials.token) this.githubTokenInput.value = githubCredentials.token;
+            if (githubCredentials.owner) this.githubOwnerInput.value = githubCredentials.owner;
+            if (githubCredentials.repo) this.githubRepoInput.value = githubCredentials.repo;
+        }
+        
+        // Azure DevOps
+        const azureCredentials = this.loadCredentials('azure-devops');
+        if (azureCredentials) {
+            if (azureCredentials.token) this.azureDevOpsTokenInput.value = azureCredentials.token;
+            if (azureCredentials.organization) this.azureDevOpsOrgInput.value = azureCredentials.organization;
+            if (azureCredentials.project) this.azureDevOpsProjectInput.value = azureCredentials.project;
+        }
+        
+        // Jira
+        const jiraCredentials = this.loadCredentials('jira');
+        if (jiraCredentials) {
+            if (jiraCredentials.baseUrl) this.jiraUrlInput.value = jiraCredentials.baseUrl;
+            if (jiraCredentials.email) this.jiraEmailInput.value = jiraCredentials.email;
+            if (jiraCredentials.token) this.jiraTokenInput.value = jiraCredentials.token;
+            if (jiraCredentials.isCloud !== undefined) this.jiraTypeSelect.value = jiraCredentials.isCloud ? 'cloud' : 'server';
+        }
+    }
+    
+    handleClearCredentials(dataSource) {
+        // Clear from localStorage
+        this.clearCredentials(dataSource);
+        
+        // Clear form fields
+        switch (dataSource) {
+            case 'asana':
+                this.asanaPatInput.value = '';
+                break;
+            case 'airtable':
+                this.airtableApiKeyInput.value = '';
+                this.airtableBaseIdInput.value = '';
+                this.airtableTableNameInput.value = '';
+                break;
+            case 'github':
+                this.githubTokenInput.value = '';
+                this.githubOwnerInput.value = '';
+                this.githubRepoInput.value = '';
+                break;
+            case 'azure-devops':
+                this.azureDevOpsTokenInput.value = '';
+                this.azureDevOpsOrgInput.value = '';
+                this.azureDevOpsProjectInput.value = '';
+                break;
+            case 'jira':
+                this.jiraUrlInput.value = '';
+                this.jiraEmailInput.value = '';
+                this.jiraTokenInput.value = '';
+                this.jiraTypeSelect.value = 'cloud';
+                break;
+        }
+        
+        // Reset project selector if this is the current data source
+        if (this.currentDataSource === dataSource) {
+            this.projectGroup.style.display = 'none';
+            this.projectSelect.innerHTML = '';
+            this.clearGantt();
+        }
+        
+        // Show confirmation
+        const dataSourceName = dataSource.charAt(0).toUpperCase() + dataSource.slice(1).replace('-', ' ');
+        alert(`${dataSourceName} credentials cleared successfully!`);
     }
     
     handleDataSourceChange(dataSource) {
@@ -180,6 +308,9 @@ class ProjectGanttApp {
             this.asanaService.setPAT(pat);
             await this.asanaService.connect();
             
+            // Save credentials to localStorage
+            this.saveCredentials('asana', { pat });
+            
             // Load projects
             const projects = await this.asanaService.getProjects();
             this.populateProjectSelect(projects, 'asana');
@@ -212,6 +343,9 @@ class ProjectGanttApp {
             this.airtableService.setCredentials(apiKey, baseId);
             await this.airtableService.testConnection(tableName);
             
+            // Save credentials to localStorage
+            this.saveCredentials('airtable', { apiKey, baseId, tableName });
+            
             // For Airtable, we directly load the table data instead of listing tables
             this.populateProjectSelect([{ name: tableName, id: tableName }], 'airtable');
             
@@ -242,6 +376,9 @@ class ProjectGanttApp {
         try {
             this.githubService.setCredentials(token, owner, repo);
             await this.githubService.testConnection();
+            
+            // Save credentials to localStorage
+            this.saveCredentials('github', { token, owner, repo });
             
             // Load GitHub projects
             const projects = await this.githubService.getProjects();
@@ -274,6 +411,9 @@ class ProjectGanttApp {
         try {
             this.azureDevOpsService.setCredentials(token, organization, project);
             await this.azureDevOpsService.testConnection();
+            
+            // Save credentials to localStorage
+            this.saveCredentials('azure-devops', { token, organization, project });
             
             // For Azure DevOps, we use predefined work item queries
             const queryOptions = this.azureDevOpsService.getCommonQueryOptions();
@@ -312,6 +452,9 @@ class ProjectGanttApp {
         try {
             this.jiraService.setCredentials(baseUrl, email, token, isCloud);
             await this.jiraService.testConnection();
+            
+            // Save credentials to localStorage
+            this.saveCredentials('jira', { baseUrl, email, token, isCloud });
             
             // Load Jira projects
             const projects = await this.jiraService.getProjects();
