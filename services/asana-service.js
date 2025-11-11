@@ -22,7 +22,8 @@ class AsanaService {
             { key: 'assignee.name', type: 'string', description: 'Name of the assignee' },
             { key: 'notes', type: 'string', description: 'Free-form text notes for the task' },
             { key: 'created_at', type: 'datetime', description: 'Time at which task was created' },
-            { key: 'modified_at', type: 'datetime', description: 'Time at which task was last modified' }
+            { key: 'modified_at', type: 'datetime', description: 'Time at which task was last modified' },
+            { key: 'resource_subtype', type: 'string', description: '' }
         ];
     }
     
@@ -126,7 +127,7 @@ class AsanaService {
     async getProjectTasks(projectGid) {
         try {
             return await this.makeAsanaRequest(`/projects/${projectGid}/tasks`, {
-                opt_fields: 'name,completed,start_on,due_on,assignee,notes'
+                opt_fields: 'name,completed,start_on,due_on,parent,dependencies,dependents,completed_percentage,subtasks,resource_subtype'
             });
         } catch (error) {
             throw new Error(`Failed to fetch project tasks: ${error.message}`);
@@ -144,7 +145,7 @@ class AsanaService {
         for (const task of tasks) {
             try {
                 const details = await this.makeAsanaRequest(`/tasks/${task.gid}`, {
-                    opt_fields: 'name,completed,start_on,due_on,parent,dependencies,dependents,completed_percentage,subtasks'
+                    opt_fields: 'name,completed,start_on,due_on,parent,dependencies,dependents,completed_percentage,subtasks,resource_subtype'
                 });
                 
                 // Fetch subtasks if they exist
@@ -174,11 +175,12 @@ class AsanaService {
                 throw new Error('No tasks found in this project');
             }
             
-            const detailedTasks = await this.getTaskDetails(tasks);
+            // const detailedTasks = await this.getTaskDetails(tasks);
             
             return {
                 projectGid,
-                tasks: detailedTasks
+                tasks
+                // tasks: detailedTasks
             };
         } catch (error) {
             throw new Error(`Failed to get project data: ${error.message}`);
