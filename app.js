@@ -1,37 +1,129 @@
-class AsanaGanttApp {
+class ProjectGanttApp {
     constructor() {
-        this.pat = null;
-        this.workspaceGid = null;
+        // Initialize services
+        this.asanaService = new AsanaService();
+        this.airtableService = new AirtableService();
+        this.githubService = new GitHubService();
+        this.azureDevOpsService = new AzureDevOpsService();
+        this.jiraService = new JiraService();
+        this.fieldMappingService = new FieldMappingService();
+        
+        // Current state
+        this.currentDataSource = null;
         this.ganttInstance = null;
+        this.gridInstance = null;
         
         // DOM elements
-        this.patInput = document.getElementById('pat-input');
-        this.connectBtn = document.getElementById('connect-btn');
+        this.initDOMElements();
+        
+        // Initialize
+        this.initEventListeners();
+        this.loadSavedCredentials();
+    }
+    
+    initDOMElements() {
+        // Data source selection
+        this.dataSourceSelect = document.getElementById('data-source-select');
+        
+        // Asana elements
+        this.asanaGroup = document.getElementById('asana-group');
+        this.asanaPatInput = document.getElementById('asana-pat-input');
+        this.asanaConnectBtn = document.getElementById('asana-connect-btn');
+        this.asanaClearBtn = document.getElementById('asana-clear-btn');
+        
+        // Airtable elements
+        this.airtableGroup = document.getElementById('airtable-group');
+        this.airtableApiKeyInput = document.getElementById('airtable-api-key-input');
+        this.airtableBaseIdInput = document.getElementById('airtable-base-id-input');
+        this.airtableTableNameInput = document.getElementById('airtable-table-name-input');
+        this.airtableConnectBtn = document.getElementById('airtable-connect-btn');
+        this.airtableClearBtn = document.getElementById('airtable-clear-btn');
+        
+        // GitHub elements
+        this.githubGroup = document.getElementById('github-group');
+        this.githubTokenInput = document.getElementById('github-token-input');
+        this.githubOwnerInput = document.getElementById('github-owner-input');
+        this.githubRepoInput = document.getElementById('github-repo-input');
+        this.githubConnectBtn = document.getElementById('github-connect-btn');
+        this.githubClearBtn = document.getElementById('github-clear-btn');
+        
+        // Azure DevOps elements
+        this.azureDevOpsGroup = document.getElementById('azure-devops-group');
+        this.azureDevOpsTokenInput = document.getElementById('azure-devops-token-input');
+        this.azureDevOpsOrgInput = document.getElementById('azure-devops-org-input');
+        this.azureDevOpsProjectInput = document.getElementById('azure-devops-project-input');
+        this.azureDevOpsConnectBtn = document.getElementById('azure-devops-connect-btn');
+        this.azureDevOpsClearBtn = document.getElementById('azure-devops-clear-btn');
+        
+        // Jira elements
+        this.jiraGroup = document.getElementById('jira-group');
+        this.jiraUrlInput = document.getElementById('jira-url-input');
+        this.jiraEmailInput = document.getElementById('jira-email-input');
+        this.jiraTokenInput = document.getElementById('jira-token-input');
+        this.jiraTypeSelect = document.getElementById('jira-type-select');
+        this.jiraConnectBtn = document.getElementById('jira-connect-btn');
+        this.jiraClearBtn = document.getElementById('jira-clear-btn');
+        
+        // Common elements
         this.projectGroup = document.getElementById('project-group');
         this.projectSelect = document.getElementById('project-select');
+        this.projectSelectLabel = document.getElementById('project-select-label');
         this.loadingDiv = document.getElementById('loading');
         this.errorDiv = document.getElementById('error-message');
         this.ganttContainer = document.getElementById('gantt-container');
+        this.gridContainer = document.getElementById('grid-container');
+        this.dataGridSection = document.querySelector('.data-grid-section');
+        
+        // Mapping dialog elements
         this.openMappingBtn = document.getElementById('open-mapping-btn');
         this.mappingDialog = document.getElementById('mapping-dialog');
         this.closeMappingBtn = document.getElementById('close-mapping-btn');
         this.saveMappingBtn = document.getElementById('save-mapping-btn');
         this.resetMappingBtn = document.getElementById('reset-mapping-btn');
         this.mappingRowsContainer = document.getElementById('mapping-rows');
-        
-        // Field mapping configuration
-        this.initFieldMappings();
-        this.loadFieldMappings();
-        
-        this.initEventListeners();
     }
     
     initEventListeners() {
-        this.connectBtn.addEventListener('click', () => this.handleConnect());
-        this.projectSelect.addEventListener('change', (e) => this.handleProjectChange(e.target.value));
-        this.patInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.handleConnect();
+        // Data source selection
+        this.dataSourceSelect.addEventListener('change', (e) => this.handleDataSourceChange(e.target.value));
+        
+        // Asana connection
+        this.asanaConnectBtn.addEventListener('click', () => this.handleAsanaConnect());
+        this.asanaPatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.handleAsanaConnect();
         });
+        this.asanaClearBtn.addEventListener('click', () => this.handleClearCredentials('asana'));
+        
+        // Airtable connection
+        this.airtableConnectBtn.addEventListener('click', () => this.handleAirtableConnect());
+        this.airtableTableNameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.handleAirtableConnect();
+        });
+        this.airtableClearBtn.addEventListener('click', () => this.handleClearCredentials('airtable'));
+        
+        // GitHub connection
+        this.githubConnectBtn.addEventListener('click', () => this.handleGitHubConnect());
+        this.githubRepoInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.handleGitHubConnect();
+        });
+        this.githubClearBtn.addEventListener('click', () => this.handleClearCredentials('github'));
+        
+        // Azure DevOps connection
+        this.azureDevOpsConnectBtn.addEventListener('click', () => this.handleAzureDevOpsConnect());
+        this.azureDevOpsProjectInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.handleAzureDevOpsConnect();
+        });
+        this.azureDevOpsClearBtn.addEventListener('click', () => this.handleClearCredentials('azure-devops'));
+        
+        // Jira connection
+        this.jiraConnectBtn.addEventListener('click', () => this.handleJiraConnect());
+        this.jiraTokenInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.handleJiraConnect();
+        });
+        this.jiraClearBtn.addEventListener('click', () => this.handleClearCredentials('jira'));
+        
+        // Project/table selection
+        this.projectSelect.addEventListener('change', (e) => this.handleProjectChange(e.target.value));
         
         // Mapping dialog events
         this.openMappingBtn.addEventListener('click', () => this.openMappingDialog());
@@ -47,66 +139,496 @@ class AsanaGanttApp {
         });
     }
     
-    initFieldMappings() {
-        // Define Asana fields based on the Swagger spec
-        this.asanaFields = [
-            { key: 'gid', type: 'string', description: 'Globally unique identifier of the task' },
-            { key: 'name', type: 'string', description: 'Name of the task' },
-            { key: 'start_on', type: 'date', description: 'The start date of the task (YYYY-MM-DD)' },
-            { key: 'due_on', type: 'date', description: 'The due date of the task (YYYY-MM-DD)' },
-            { key: 'due_at', type: 'datetime', description: 'The UTC date and time when task is due' },
-            { key: 'completed', type: 'boolean', description: 'True if the task is marked complete' },
-            { key: 'completed_percentage', type: 'number', description: 'Percentage completion (0-100)' },
-            { key: 'completed_at', type: 'datetime', description: 'Time at which task was completed' },
-            { key: 'parent', type: 'object', description: 'Parent task (contains gid)' },
-            { key: 'parent.gid', type: 'string', description: 'Globally unique identifier of parent task' },
-            { key: 'dependencies', type: 'array', description: 'Array of tasks this task depends on' },
-            { key: 'dependents', type: 'array', description: 'Array of tasks that depend on this task' },
-            { key: 'assignee', type: 'object', description: 'User this task is assigned to' },
-            { key: 'assignee.name', type: 'string', description: 'Name of the assignee' },
-            { key: 'notes', type: 'string', description: 'Free-form text notes for the task' },
-            { key: 'created_at', type: 'datetime', description: 'Time at which task was created' },
-            { key: 'modified_at', type: 'datetime', description: 'Time at which task was last modified' }
-        ];
-        
-        // Define Gantt chart expected fields
-        this.ganttFields = [
-            { key: 'id', type: 'string', required: true, description: 'Unique identifier for the task' },
-            { key: 'name', type: 'string', required: true, description: 'Display name of the task' },
-            { key: 'startTime', type: 'date', required: true, description: 'Start date/time of the task' },
-            { key: 'endTime', type: 'date', required: true, description: 'End date/time of the task' },
-            { key: 'progress', type: 'number', required: false, description: 'Task completion progress (0-100)' },
-            { key: 'parentId', type: 'string', required: false, description: 'ID of the parent task' },
-            { key: 'dependencies', type: 'array', required: false, description: 'Array of task IDs this task depends on' }
-        ];
-        
-        // Default mappings
-        this.defaultMappings = {
-            'id': 'gid',
-            'name': 'name',
-            'startTime': 'start_on',
-            'endTime': 'due_on',
-            'progress': 'completed_percentage',
-            'parentId': 'parent.gid',
-            'dependencies': 'dependencies'
-        };
+    // Local Storage Management
+    saveCredentials(dataSource, credentials) {
+        try {
+            const key = `gantt_${dataSource}_credentials`;
+            localStorage.setItem(key, JSON.stringify(credentials));
+        } catch (error) {
+            console.warn('Failed to save credentials to localStorage:', error);
+        }
     }
     
-    loadFieldMappings() {
-        const saved = localStorage.getItem('asanaGanttFieldMappings');
-        if (saved) {
-            try {
-                this.fieldMappings = JSON.parse(saved);
-            } catch (e) {
-                console.warn('Failed to load saved mappings, using defaults');
-                this.fieldMappings = { ...this.defaultMappings };
+    loadCredentials(dataSource) {
+        try {
+            const key = `gantt_${dataSource}_credentials`;
+            const saved = localStorage.getItem(key);
+            return saved ? JSON.parse(saved) : null;
+        } catch (error) {
+            console.warn('Failed to load credentials from localStorage:', error);
+            return null;
+        }
+    }
+    
+    clearCredentials(dataSource) {
+        try {
+            const key = `gantt_${dataSource}_credentials`;
+            localStorage.removeItem(key);
+        } catch (error) {
+            console.warn('Failed to clear credentials from localStorage:', error);
+        }
+    }
+    
+    loadSavedCredentials() {
+        // Load and populate saved credentials for all data sources
+        
+        // Asana
+        const asanaCredentials = this.loadCredentials('asana');
+        if (asanaCredentials && asanaCredentials.pat) {
+            this.asanaPatInput.value = asanaCredentials.pat;
+        }
+        
+        // Airtable
+        const airtableCredentials = this.loadCredentials('airtable');
+        if (airtableCredentials) {
+            if (airtableCredentials.apiKey) this.airtableApiKeyInput.value = airtableCredentials.apiKey;
+            if (airtableCredentials.baseId) this.airtableBaseIdInput.value = airtableCredentials.baseId;
+            if (airtableCredentials.tableName) this.airtableTableNameInput.value = airtableCredentials.tableName;
+        }
+        
+        // GitHub
+        const githubCredentials = this.loadCredentials('github');
+        if (githubCredentials) {
+            if (githubCredentials.token) this.githubTokenInput.value = githubCredentials.token;
+            if (githubCredentials.owner) this.githubOwnerInput.value = githubCredentials.owner;
+            if (githubCredentials.repo) this.githubRepoInput.value = githubCredentials.repo;
+        }
+        
+        // Azure DevOps
+        const azureCredentials = this.loadCredentials('azure-devops');
+        if (azureCredentials) {
+            if (azureCredentials.token) this.azureDevOpsTokenInput.value = azureCredentials.token;
+            if (azureCredentials.organization) this.azureDevOpsOrgInput.value = azureCredentials.organization;
+            if (azureCredentials.project) this.azureDevOpsProjectInput.value = azureCredentials.project;
+        }
+        
+        // Jira
+        const jiraCredentials = this.loadCredentials('jira');
+        if (jiraCredentials) {
+            if (jiraCredentials.baseUrl) this.jiraUrlInput.value = jiraCredentials.baseUrl;
+            if (jiraCredentials.email) this.jiraEmailInput.value = jiraCredentials.email;
+            if (jiraCredentials.token) this.jiraTokenInput.value = jiraCredentials.token;
+            if (jiraCredentials.isCloud !== undefined) this.jiraTypeSelect.value = jiraCredentials.isCloud ? 'cloud' : 'server';
+        }
+    }
+    
+    handleClearCredentials(dataSource) {
+        // Clear from localStorage
+        this.clearCredentials(dataSource);
+        
+        // Clear form fields
+        switch (dataSource) {
+            case 'asana':
+                this.asanaPatInput.value = '';
+                break;
+            case 'airtable':
+                this.airtableApiKeyInput.value = '';
+                this.airtableBaseIdInput.value = '';
+                this.airtableTableNameInput.value = '';
+                break;
+            case 'github':
+                this.githubTokenInput.value = '';
+                this.githubOwnerInput.value = '';
+                this.githubRepoInput.value = '';
+                break;
+            case 'azure-devops':
+                this.azureDevOpsTokenInput.value = '';
+                this.azureDevOpsOrgInput.value = '';
+                this.azureDevOpsProjectInput.value = '';
+                break;
+            case 'jira':
+                this.jiraUrlInput.value = '';
+                this.jiraEmailInput.value = '';
+                this.jiraTokenInput.value = '';
+                this.jiraTypeSelect.value = 'cloud';
+                break;
+        }
+        
+        // Reset project selector if this is the current data source
+        if (this.currentDataSource === dataSource) {
+            this.projectGroup.style.display = 'none';
+            this.projectSelect.innerHTML = '';
+            this.clearGantt();
+        }
+        
+        // Show confirmation
+        const dataSourceName = dataSource.charAt(0).toUpperCase() + dataSource.slice(1).replace('-', ' ');
+        alert(`${dataSourceName} credentials cleared successfully!`);
+    }
+    
+    handleDataSourceChange(dataSource) {
+        // Hide all connection groups
+        this.asanaGroup.style.display = 'none';
+        this.airtableGroup.style.display = 'none';
+        this.githubGroup.style.display = 'none';
+        this.azureDevOpsGroup.style.display = 'none';
+        this.jiraGroup.style.display = 'none';
+        this.projectGroup.style.display = 'none';
+        
+        // Clear current state
+        this.currentDataSource = null;
+        this.clearGantt();
+        this.hideError();
+        
+        if (dataSource === 'asana') {
+            this.asanaGroup.style.display = 'block';
+            this.currentDataSource = 'asana';
+            this.projectSelectLabel.textContent = 'Select Project:';
+        } else if (dataSource === 'airtable') {
+            this.airtableGroup.style.display = 'block';
+            this.currentDataSource = 'airtable';
+            this.projectSelectLabel.textContent = 'Table Data:';
+        } else if (dataSource === 'github') {
+            this.githubGroup.style.display = 'block';
+            this.currentDataSource = 'github';
+            this.projectSelectLabel.textContent = 'Select Project:';
+        } else if (dataSource === 'azure-devops') {
+            this.azureDevOpsGroup.style.display = 'block';
+            this.currentDataSource = 'azure-devops';
+            this.projectSelectLabel.textContent = 'Work Items:';
+        } else if (dataSource === 'jira') {
+            this.jiraGroup.style.display = 'block';
+            this.currentDataSource = 'jira';
+            this.projectSelectLabel.textContent = 'Select Project:';
+        }
+    }
+    
+    async handleAsanaConnect() {
+        const pat = this.asanaPatInput.value.trim();
+        
+        if (!pat) {
+            this.showError('Please enter your Asana PAT');
+            return;
+        }
+        
+        this.hideError();
+        this.showLoading();
+        
+        try {
+            this.asanaService.setPAT(pat);
+            await this.asanaService.connect();
+            
+            // Save credentials to localStorage
+            this.saveCredentials('asana', { pat });
+            
+            // Load projects
+            const projects = await this.asanaService.getProjects();
+            this.populateProjectSelect(projects, 'asana');
+            
+            // Show project selector
+            this.showConnectedState('asana');
+            
+        } catch (error) {
+            console.error('Asana connection error:', error);
+            this.showError(`Failed to connect to Asana: ${error.message}`);
+        } finally {
+            this.showLoading(false);
+        }
+    }
+    
+    async handleAirtableConnect() {
+        const apiKey = this.airtableApiKeyInput.value.trim();
+        const baseId = this.airtableBaseIdInput.value.trim();
+        const tableName = this.airtableTableNameInput.value.trim();
+        
+        if (!apiKey || !baseId || !tableName) {
+            this.showError('Please enter API key, Base ID, and table name');
+            return;
+        }
+        
+        this.hideError();
+        this.showLoading();
+        
+        try {
+            this.airtableService.setCredentials(apiKey, baseId);
+            await this.airtableService.testConnection(tableName);
+            
+            // Save credentials to localStorage
+            this.saveCredentials('airtable', { apiKey, baseId, tableName });
+            
+            // For Airtable, we directly load the table data instead of listing tables
+            this.populateProjectSelect([{ name: tableName, id: tableName }], 'airtable');
+            
+            // Show project selector
+            this.showConnectedState('airtable');
+            
+        } catch (error) {
+            console.error('Airtable connection error:', error);
+            this.showError(`Failed to connect to Airtable: ${error.message}`);
+        } finally {
+            this.showLoading(false);
+        }
+    }
+    
+    async handleGitHubConnect() {
+        const token = this.githubTokenInput.value.trim();
+        const owner = this.githubOwnerInput.value.trim();
+        const repo = this.githubRepoInput.value.trim();
+        
+        if (!token || !owner || !repo) {
+            this.showError('Please enter GitHub token, owner, and repository name');
+            return;
+        }
+        
+        this.hideError();
+        this.showLoading();
+        
+        try {
+            this.githubService.setCredentials(token, owner, repo);
+            await this.githubService.testConnection();
+            
+            // Save credentials to localStorage
+            this.saveCredentials('github', { token, owner, repo });
+            
+            // Load GitHub projects
+            const projects = await this.githubService.getProjects();
+            this.populateProjectSelect(projects, 'github');
+            
+            // Show project selector
+            this.showConnectedState('github');
+            
+        } catch (error) {
+            console.error('GitHub connection error:', error);
+            this.showError(`Failed to connect to GitHub: ${error.message}`);
+        } finally {
+            this.showLoading(false);
+        }
+    }
+    
+    async handleAzureDevOpsConnect() {
+        const token = this.azureDevOpsTokenInput.value.trim();
+        const organization = this.azureDevOpsOrgInput.value.trim();
+        const project = this.azureDevOpsProjectInput.value.trim();
+        
+        if (!token || !organization || !project) {
+            this.showError('Please enter Azure DevOps token, organization, and project name');
+            return;
+        }
+        
+        this.hideError();
+        this.showLoading();
+        
+        try {
+            this.azureDevOpsService.setCredentials(token, organization, project);
+            await this.azureDevOpsService.testConnection();
+            
+            // Save credentials to localStorage
+            this.saveCredentials('azure-devops', { token, organization, project });
+            
+            // For Azure DevOps, we use predefined work item queries
+            const queryOptions = this.azureDevOpsService.getCommonQueryOptions();
+            const queries = Object.keys(queryOptions).map(key => ({
+                name: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
+                id: key
+            }));
+            
+            this.populateProjectSelect(queries, 'azure-devops');
+            
+            // Show project selector
+            this.showConnectedState('azure-devops');
+            
+        } catch (error) {
+            console.error('Azure DevOps connection error:', error);
+            this.showError(`Failed to connect to Azure DevOps: ${error.message}`);
+        } finally {
+            this.showLoading(false);
+        }
+    }
+    
+    async handleJiraConnect() {
+        const baseUrl = this.jiraUrlInput.value.trim();
+        const email = this.jiraEmailInput.value.trim();
+        const token = this.jiraTokenInput.value.trim();
+        const isCloud = this.jiraTypeSelect.value === 'cloud';
+        
+        if (!baseUrl || !email || !token) {
+            this.showError('Please enter Jira URL, email/username, and API token/password');
+            return;
+        }
+        
+        this.hideError();
+        this.showLoading();
+        
+        try {
+            this.jiraService.setCredentials(baseUrl, email, token, isCloud);
+            await this.jiraService.testConnection();
+            
+            // Save credentials to localStorage
+            this.saveCredentials('jira', { baseUrl, email, token, isCloud });
+            
+            // Load Jira projects
+            const projects = await this.jiraService.getProjects();
+            this.populateProjectSelect(projects, 'jira');
+            
+            // Show project selector
+            this.showConnectedState('jira');
+            
+        } catch (error) {
+            console.error('Jira connection error:', error);
+            this.showError(`Failed to connect to Jira: ${error.message}`);
+        } finally {
+            this.showLoading(false);
+        }
+    }
+    
+    populateProjectSelect(items, dataSource) {
+        // Clear existing options
+        let defaultText = '-- Select project --';
+        if (dataSource === 'airtable') defaultText = '-- Select table --';
+        if (dataSource === 'azure-devops') defaultText = '-- Select query --';
+        
+        this.projectSelect.innerHTML = `<option value="">${defaultText}</option>`;
+        
+        // Add items to select
+        items.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item.gid || item.id || item.key;
+            option.textContent = item.name || item.title;
+            this.projectSelect.appendChild(option);
+        });
+    }
+    
+    showConnectedState(dataSource) {
+        this.projectGroup.style.display = 'block';
+        this.projectSelect.disabled = false;
+        
+        if (dataSource === 'asana') {
+            this.asanaConnectBtn.textContent = 'Connected ✓';
+            this.asanaConnectBtn.disabled = true;
+            this.asanaPatInput.disabled = true;
+        } else if (dataSource === 'airtable') {
+            this.airtableConnectBtn.textContent = 'Connected ✓';
+            this.airtableConnectBtn.disabled = true;
+            this.airtableApiKeyInput.disabled = true;
+            this.airtableBaseIdInput.disabled = true;
+            this.airtableTableNameInput.disabled = true;
+        } else if (dataSource === 'github') {
+            this.githubConnectBtn.textContent = 'Connected ✓';
+            this.githubConnectBtn.disabled = true;
+            this.githubTokenInput.disabled = true;
+            this.githubOwnerInput.disabled = true;
+            this.githubRepoInput.disabled = true;
+        } else if (dataSource === 'azure-devops') {
+            this.azureDevOpsConnectBtn.textContent = 'Connected ✓';
+            this.azureDevOpsConnectBtn.disabled = true;
+            this.azureDevOpsTokenInput.disabled = true;
+            this.azureDevOpsOrgInput.disabled = true;
+            this.azureDevOpsProjectInput.disabled = true;
+        } else if (dataSource === 'jira') {
+            this.jiraConnectBtn.textContent = 'Connected ✓';
+            this.jiraConnectBtn.disabled = true;
+            this.jiraUrlInput.disabled = true;
+            this.jiraEmailInput.disabled = true;
+            this.jiraTokenInput.disabled = true;
+            this.jiraTypeSelect.disabled = true;
+        }
+    }
+    
+    async handleProjectChange(projectId) {
+        if (!projectId) {
+            this.clearGantt();
+            return;
+        }
+        
+        this.hideError();
+        this.showLoading();
+        
+        try {
+            let ganttData = [];
+            
+            if (this.currentDataSource === 'asana') {
+                ganttData = await this.loadAsanaProjectData(projectId);
+            } else if (this.currentDataSource === 'airtable') {
+                ganttData = await this.loadAirtableData(projectId);
+            } else if (this.currentDataSource === 'github') {
+                ganttData = await this.loadGitHubProjectData(projectId);
+            } else if (this.currentDataSource === 'azure-devops') {
+                ganttData = await this.loadAzureDevOpsData(projectId);
+            } else if (this.currentDataSource === 'jira') {
+                ganttData = await this.loadJiraProjectData(projectId);
             }
-        } else {
-            this.fieldMappings = { ...this.defaultMappings };
+            
+            if (ganttData.length === 0) {
+                this.showError('No items with dates found');
+                this.clearGantt();
+                return;
+            }
+            
+            // Render Gantt chart
+            this.renderGantt(ganttData);
+            
+        } catch (error) {
+            console.error('Error loading data:', error);
+            this.showError(`Failed to load data: ${error.message}`);
+        } finally {
+            this.showLoading(false);
+        }
+    }
+    
+    async loadAsanaProjectData(projectGid) {
+        try {
+            const projectData = await this.asanaService.getProjectData(projectGid);
+            const fieldMappings = this.fieldMappingService.loadFieldMappings('asana');
+            
+            return this.asanaService.convertToGanttFormat(projectData.tasks, fieldMappings);
+        } catch (error) {
+            throw new Error(`Failed to load Asana project data: ${error.message}`);
+        }
+    }
+    
+    async loadAirtableData(tableName) {
+        try {
+            const records = await this.airtableService.getTableRecords(tableName);
+            const fieldMappings = this.fieldMappingService.loadFieldMappings('airtable');
+            
+            return this.airtableService.convertToGanttFormat(records, fieldMappings);
+        } catch (error) {
+            throw new Error(`Failed to load Airtable data: ${error.message}`);
+        }
+    }
+    
+    async loadGitHubProjectData(projectId) {
+        try {
+            const projectData = await this.githubService.getProjectData(projectId);
+            const fieldMappings = this.fieldMappingService.loadFieldMappings('github');
+            
+            return this.githubService.convertToGanttFormat(projectData.items, fieldMappings);
+        } catch (error) {
+            throw new Error(`Failed to load GitHub project data: ${error.message}`);
+        }
+    }
+    
+    async loadAzureDevOpsData(queryType) {
+        try {
+            const queryOptions = this.azureDevOpsService.getCommonQueryOptions();
+            const options = queryOptions[queryType] || {};
+            
+            const projectData = await this.azureDevOpsService.getProjectData(options);
+            const fieldMappings = this.fieldMappingService.loadFieldMappings('azure-devops');
+            
+            return this.azureDevOpsService.convertToGanttFormat(projectData.workItems, fieldMappings);
+        } catch (error) {
+            throw new Error(`Failed to load Azure DevOps data: ${error.message}`);
+        }
+    }
+    
+    async loadJiraProjectData(projectKey) {
+        try {
+            const projectData = await this.jiraService.getProjectData(projectKey);
+            const fieldMappings = this.fieldMappingService.loadFieldMappings('jira');
+            
+            return this.jiraService.convertToGanttFormat(projectData.issues, fieldMappings);
+        } catch (error) {
+            throw new Error(`Failed to load Jira project data: ${error.message}`);
         }
     }
     
     openMappingDialog() {
+        if (!this.currentDataSource) {
+            this.showError('Please connect to a data source first');
+            return;
+        }
+        
         this.renderMappingDialog();
         this.mappingDialog.style.display = 'flex';
     }
@@ -115,10 +637,43 @@ class AsanaGanttApp {
         this.mappingDialog.style.display = 'none';
     }
     
-    renderMappingDialog() {
+    async renderMappingDialog() {
         this.mappingRowsContainer.innerHTML = '';
         
-        this.ganttFields.forEach(ganttField => {
+        let sourceFields = [];
+        
+        // Get source fields based on current data source
+        if (this.currentDataSource === 'asana') {
+            sourceFields = this.asanaService.getAsanaFields();
+        } else if (this.currentDataSource === 'airtable') {
+            // Try to get actual table schema
+            const tableName = this.airtableTableNameInput.value.trim();
+            if (tableName) {
+                try {
+                    sourceFields = await this.airtableService.getTableSchema(tableName);
+                } catch (error) {
+                    console.warn('Could not load table schema, using defaults:', error);
+                    sourceFields = this.airtableService.getAirtableFields();
+                }
+            } else {
+                sourceFields = this.airtableService.getAirtableFields();
+            }
+        } else if (this.currentDataSource === 'github') {
+            sourceFields = this.githubService.getGitHubFields();
+        } else if (this.currentDataSource === 'azure-devops') {
+            sourceFields = this.azureDevOpsService.getAzureDevOpsFields();
+        } else if (this.currentDataSource === 'jira') {
+            try {
+                sourceFields = await this.jiraService.getEnhancedFields();
+            } catch (error) {
+                console.warn('Could not load enhanced Jira fields, using defaults:', error);
+                sourceFields = this.jiraService.getJiraFields();
+            }
+        }
+        
+        const mappingConfig = this.fieldMappingService.createMappingConfig(sourceFields, this.currentDataSource);
+        
+        mappingConfig.ganttFields.forEach(ganttField => {
             const row = document.createElement('div');
             row.className = 'mapping-row';
             
@@ -139,9 +694,9 @@ class AsanaGanttApp {
             arrow.className = 'mapping-arrow';
             arrow.innerHTML = '←';
             
-            // Asana field selector (right side)
-            const asanaSelector = document.createElement('div');
-            asanaSelector.className = 'field-info';
+            // Source field selector (right side)
+            const sourceSelector = document.createElement('div');
+            sourceSelector.className = 'field-info';
             
             const select = document.createElement('select');
             select.className = 'field-select';
@@ -150,17 +705,17 @@ class AsanaGanttApp {
             // Add empty option
             const emptyOption = document.createElement('option');
             emptyOption.value = '';
-            emptyOption.textContent = '-- Select Asana field --';
+            emptyOption.textContent = `-- Select ${this.currentDataSource} field --`;
             select.appendChild(emptyOption);
             
-            // Add Asana fields as options
-            this.asanaFields.forEach(asanaField => {
+            // Add source fields as options
+            sourceFields.forEach(sourceField => {
                 const option = document.createElement('option');
-                option.value = asanaField.key;
-                option.textContent = `${asanaField.key} (${asanaField.type})`;
+                option.value = sourceField.key;
+                option.textContent = `${sourceField.key} (${sourceField.type})`;
                 
                 // Set selected if this is the current mapping
-                if (this.fieldMappings[ganttField.key] === asanaField.key) {
+                if (mappingConfig.currentMappings[ganttField.key] === sourceField.key) {
                     option.selected = true;
                 }
                 
@@ -173,19 +728,19 @@ class AsanaGanttApp {
             selectedDescription.style.marginTop = '8px';
             
             const updateDescription = () => {
-                const selectedField = this.asanaFields.find(f => f.key === select.value);
+                const selectedField = sourceFields.find(f => f.key === select.value);
                 selectedDescription.textContent = selectedField ? selectedField.description : '';
             };
             
             select.addEventListener('change', updateDescription);
             updateDescription();
             
-            asanaSelector.appendChild(select);
-            asanaSelector.appendChild(selectedDescription);
+            sourceSelector.appendChild(select);
+            sourceSelector.appendChild(selectedDescription);
             
             row.appendChild(ganttInfo);
             row.appendChild(arrow);
-            row.appendChild(asanaSelector);
+            row.appendChild(sourceSelector);
             
             this.mappingRowsContainer.appendChild(row);
         });
@@ -193,32 +748,30 @@ class AsanaGanttApp {
     
     saveFieldMappings() {
         const selects = this.mappingRowsContainer.querySelectorAll('.field-select');
-        const newMappings = {};
+        const formData = {};
         
         selects.forEach(select => {
             const ganttField = select.dataset.ganttField;
-            const asanaField = select.value;
-            if (asanaField) {
-                newMappings[ganttField] = asanaField;
+            const sourceField = select.value;
+            if (sourceField) {
+                formData[ganttField] = sourceField;
             }
         });
         
-        this.fieldMappings = newMappings;
-        localStorage.setItem('asanaGanttFieldMappings', JSON.stringify(newMappings));
+        const result = this.fieldMappingService.updateMappingsFromForm(formData, this.currentDataSource);
         
-        this.closeMappingDialog();
-        
-        // Show success message
-        this.showSuccess('Field mappings saved successfully! Changes will apply to newly loaded projects.');
+        if (result.saved) {
+            this.closeMappingDialog();
+            this.showSuccess('Field mappings saved successfully! Changes will apply to newly loaded data.');
+        } else {
+            this.showError(`Mapping validation failed: ${result.validation.errors.join(', ')}`);
+        }
     }
     
     resetFieldMappings() {
         if (confirm('Are you sure you want to reset all field mappings to defaults?')) {
-            this.fieldMappings = { ...this.defaultMappings };
-            localStorage.removeItem('asanaGanttFieldMappings');
+            this.fieldMappingService.resetFieldMappings(this.currentDataSource);
             this.renderMappingDialog();
-            
-            // Show success message
             this.showSuccess('Field mappings reset to defaults!');
         }
     }
@@ -253,243 +806,6 @@ class AsanaGanttApp {
         this.errorDiv.style.display = 'none';
     }
     
-    async makeAsanaRequest(endpoint, params = {}) {
-        const url = new URL(`https://app.asana.com/api/1.0${endpoint}`);
-        Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
-        
-        const response = await fetch(url, {
-            headers: {
-                'Authorization': `Bearer ${this.pat}`,
-                'Accept': 'application/json'
-            }
-        });
-        
-        if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            throw new Error(error.errors?.[0]?.message || `API Error: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        return data.data;
-    }
-    
-    async handleConnect() {
-        const pat = this.patInput.value.trim();
-        
-        if (!pat) {
-            this.showError('Please enter your Asana PAT');
-            return;
-        }
-        
-        this.pat = pat;
-        this.hideError();
-        this.showLoading();
-        
-        try {
-            // Get workspaces
-            const workspaces = await this.makeAsanaRequest('/workspaces');
-            
-            if (!workspaces || workspaces.length === 0) {
-                throw new Error('No workspaces found');
-            }
-            
-            // Use the first workspace
-            this.workspaceGid = workspaces[0].gid;
-            
-            // Fetch projects
-            await this.loadProjects();
-            
-            // Show project selector
-            this.projectGroup.style.display = 'block';
-            this.projectSelect.disabled = false;
-            this.connectBtn.textContent = 'Connected ✓';
-            this.connectBtn.disabled = true;
-            this.patInput.disabled = true;
-            
-        } catch (error) {
-            console.error('Connection error:', error);
-            this.showError(`Failed to connect: ${error.message}`);
-        } finally {
-            this.showLoading(false);
-        }
-    }
-    
-    async loadProjects() {
-        try {
-            const projects = await this.makeAsanaRequest('/projects', {
-                workspace: this.workspaceGid
-            });
-            
-            // Clear existing options except the first one
-            this.projectSelect.innerHTML = '<option value="">-- Select a project --</option>';
-            
-            // Add projects to select
-            projects.forEach(project => {
-                const option = document.createElement('option');
-                option.value = project.gid;
-                option.textContent = project.name;
-                this.projectSelect.appendChild(option);
-            });
-            
-        } catch (error) {
-            console.error('Error loading projects:', error);
-            this.showError(`Failed to load projects: ${error.message}`);
-        }
-    }
-    
-    async handleProjectChange(projectGid) {
-        if (!projectGid) {
-            this.clearGantt();
-            return;
-        }
-        
-        this.hideError();
-        this.showLoading();
-        
-        try {
-            // Fetch all tasks for the project
-            const tasks = await this.fetchProjectTasks(projectGid);
-            
-            if (!tasks || tasks.length === 0) {
-                this.showError('No tasks found in this project');
-                this.clearGantt();
-                return;
-            }
-            
-            // Fetch detailed information for each task
-            const detailedTasks = await this.fetchTaskDetails(tasks);
-            
-            // Convert to Gantt format
-            const ganttData = this.convertToGanttFormat(detailedTasks);
-            
-            if (ganttData.length === 0) {
-                this.showError('No tasks with dates found in this project');
-                this.clearGantt();
-                return;
-            }
-            
-            // Render Gantt chart
-            this.renderGantt(ganttData);
-            
-        } catch (error) {
-            console.error('Error loading tasks:', error);
-            this.showError(`Failed to load tasks: ${error.message}`);
-        } finally {
-            this.showLoading(false);
-        }
-    }
-    
-    async fetchProjectTasks(projectGid) {
-        return await this.makeAsanaRequest(`/projects/${projectGid}/tasks`, {
-            opt_fields: 'name,completed,start_on,due_on,assignee,notes'
-        });
-    }
-    
-    async fetchTaskDetails(tasks) {
-        const detailedTasks = [];
-        
-        for (const task of tasks) {
-            try {
-                const details = await this.makeAsanaRequest(`/tasks/${task.gid}`, {
-                    opt_fields: 'name,completed,start_on,due_on,parent,dependencies,dependents,completed_percentage,subtasks'
-                });
-                
-                // Fetch subtasks if they exist
-                if (details.subtasks && details.subtasks.length > 0) {
-                    details.subtasksDetails = await this.fetchTaskDetails(details.subtasks);
-                }
-                
-                detailedTasks.push(details);
-            } catch (error) {
-                console.warn(`Failed to fetch details for task ${task.gid}:`, error);
-            }
-        }
-        
-        return detailedTasks;
-    }
-    
-    getNestedValue(obj, path) {
-        if (!path || typeof path !== 'string') {
-            return undefined;
-        }
-        return path.split('.').reduce((current, key) => current?.[key], obj);
-    }
-    
-    convertToGanttFormat(tasks) {
-        const ganttSeries = [];
-        const taskMap = new Map();
-        
-        const processTask = (task, parentId = null) => {
-            // Get mapped ID field
-            const idField = this.fieldMappings['id'] || 'gid';
-            const taskId = this.getNestedValue(task, idField);
-            
-            // avoid processing same task twice
-            if (taskMap.has(taskId)) return;
-            
-            // Determine parent from parameter or Asana parent field
-            const parentField = this.fieldMappings['parentId'] || 'parent.gid';
-            const parentGid = parentId || this.getNestedValue(task, parentField) || null;
-            
-            // Get start and end date fields
-            const startField = this.fieldMappings['startTime'] || 'start_on';
-            const endField = this.fieldMappings['endTime'] || 'due_on';
-            const startValue = this.getNestedValue(task, startField);
-            const endValue = this.getNestedValue(task, endField);
-            
-            // Skip tasks without dates
-            if (!startValue && !endValue) {
-                // still record mapping so children can reference parent even if parent has no dates
-                if (parentGid && !taskMap.has(taskId)) {
-                    taskMap.set(taskId, null);
-                }
-                // but do not add to ganttSeries
-            } else {
-                const nameField = this.fieldMappings['name'] || 'name';
-                const progressField = this.fieldMappings['progress'] || 'completed_percentage';
-                
-                const ganttTask = {
-                    id: taskId,
-                    name: this.getNestedValue(task, nameField) || 'Untitled Task',
-                    startTime: this.formatDate(startValue || endValue),
-                    endTime: this.formatDate(endValue || startValue),
-                    progress: task.completed ? 100 : (this.getNestedValue(task, progressField) || 0)
-                };
-                
-                // Attach parentId when known
-                if (parentGid) {
-                    ganttTask.parentId = parentGid;
-                    // also expose as dependencies for Gantt libs that use that field
-                    ganttTask.dependencies = [parentGid];
-                }
-                
-                ganttSeries.push(ganttTask);
-                taskMap.set(taskId, ganttTask);
-            }
-            
-            // Process subtasks (if any) and ensure their parent is set to current task ID
-            if (task.subtasksDetails && task.subtasksDetails.length > 0) {
-                task.subtasksDetails.forEach(subtask => {
-                    processTask(subtask, taskId);
-                });
-            }
-        };
-        
-        // Process all tasks (not only top-level) so parent relationships from Asana are preserved
-        tasks.forEach(task => processTask(task));
-        console.log('Gantt series with custom mappings:', ganttSeries);
-        console.log('Active field mappings:', this.fieldMappings);
-        return ganttSeries;
-    }
-    
-    formatDate(dateString) {
-        if (!dateString) return null;
-        
-        // Convert from YYYY-MM-DD to MM-DD-YYYY
-        const [year, month, day] = dateString.split('-');
-        return `${month}-${day}-${year}`;
-    }
-    
     renderGantt(data) {
         this.clearGantt();
         
@@ -512,6 +828,107 @@ class AsanaGanttApp {
         this.ganttInstance = new ApexGantt(this.ganttContainer, ganttOptions);
         this.ganttInstance.render();
         this.ganttContainer.style.display = 'block';
+        
+        // Also render the data grid
+        this.renderGrid(data);
+    }
+    
+    renderGrid(data) {
+        this.clearGrid();
+        
+        if (!data || data.length === 0) {
+            this.dataGridSection.classList.add('hidden');
+            return;
+        }
+        
+        // Prepare grid data - flatten the task data for tabular display
+        const gridData = data.map(task => ({
+            ID: task.id || 'N/A',
+            Name: task.name || 'Untitled',
+            'Start Date': task.startTime ? this.formatDateForGrid(task.startTime) : 'N/A',
+            'End Date': task.endTime ? this.formatDateForGrid(task.endTime) : 'N/A',
+            'Progress (%)': task.progress || 0,
+            'Parent ID': task.parentId || 'None',
+            'Dependency': task.dependency || 'None',
+            'Type': task.type || 'Task',
+            'Status': this.getStatusFromProgress(task.progress)
+        }));
+        
+        // Create a simple HTML table since ApexCharts doesn't have a native grid component
+        this.createDataTable(gridData);
+        this.dataGridSection.classList.remove('hidden');
+    }
+    
+    createDataTable(data) {
+        if (data.length === 0) return;
+        
+        const table = document.createElement('table');
+        table.className = 'data-table';
+        
+        // Create header
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        
+        Object.keys(data[0]).forEach(key => {
+            const th = document.createElement('th');
+            th.textContent = key;
+            headerRow.appendChild(th);
+        });
+        
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+        
+        // Create body
+        const tbody = document.createElement('tbody');
+        
+        data.forEach(row => {
+            const tr = document.createElement('tr');
+            
+            Object.values(row).forEach(value => {
+                const td = document.createElement('td');
+                td.textContent = value;
+                tr.appendChild(td);
+            });
+            
+            tbody.appendChild(tr);
+        });
+        
+        table.appendChild(tbody);
+        this.gridContainer.appendChild(table);
+    }
+    
+    formatDateForGrid(dateString) {
+        if (!dateString) return 'N/A';
+        
+        try {
+            // Handle MM-DD-YYYY format from Asana service
+            const parts = dateString.split('-');
+            if (parts.length === 3) {
+                const [month, day, year] = parts;
+                const date = new Date(year, month - 1, day);
+                return date.toLocaleDateString();
+            }
+            
+            // Fallback to direct parsing
+            const date = new Date(dateString);
+            return isNaN(date.getTime()) ? dateString : date.toLocaleDateString();
+        } catch (error) {
+            return dateString;
+        }
+    }
+    
+    getStatusFromProgress(progress) {
+        if (progress >= 100) return 'Completed';
+        if (progress > 0) return 'In Progress';
+        return 'Not Started';
+    }
+    
+    clearGrid() {
+        if (this.gridInstance) {
+            this.gridInstance.destroy();
+            this.gridInstance = null;
+        }
+        this.gridContainer.innerHTML = '';
     }
     
     clearGantt() {
@@ -521,10 +938,14 @@ class AsanaGanttApp {
         }
         this.ganttContainer.innerHTML = '';
         this.ganttContainer.style.display = 'none';
+        
+        // Also clear the grid
+        this.clearGrid();
+        this.dataGridSection.classList.add('hidden');
     }
 }
 
 // Initialize the app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    new AsanaGanttApp();
+    new ProjectGanttApp();
 });

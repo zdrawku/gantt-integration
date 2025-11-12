@@ -3,30 +3,198 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Asana Gantt Chart Viewer</title>
+    <title>Gantt Chart Viewer</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/apexgantt"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Asana Gantt Chart Viewer</h1>
+            <h1>Project Gantt Chart Viewer</h1>
+            <p>Connect to Asana or Airtable to visualize your project data</p>
         </header>
 
         <div class="controls">
             <div class="input-group">
-                <label for="pat-input">Asana Personal Access Token (PAT):</label>
-                <input 
-                    type="password" 
-                    id="pat-input" 
-                    placeholder="Enter your Asana PAT"
-                    autocomplete="off"
-                />
-                <button id="connect-btn">Connect</button>
+                <label for="data-source-select">Data Source:</label>
+                <select id="data-source-select">
+                    <option value="">-- Select data source --</option>
+                    <option value="asana">Asana</option>
+                    <option value="airtable">Airtable</option>
+                    <option value="github">GitHub Projects</option>
+                    <option value="azure-devops">Azure DevOps</option>
+                    <option value="jira">Jira</option>
+                </select>
             </div>
 
+            <!-- Asana Connection -->
+            <div class="input-group" id="asana-group" style="display: none;">
+                <div class="field-row">
+                    <label for="asana-pat-input">Asana Personal Access Token (PAT):</label>
+                    <input 
+                        type="password" 
+                        id="asana-pat-input" 
+                        placeholder="Enter your Asana PAT"
+                        autocomplete="off"
+                    />
+                </div>
+                <div class="button-row">
+                    <button id="asana-connect-btn">Connect to Asana</button>
+                    <button id="asana-clear-btn" class="clear-btn">Clear Saved Data</button>
+                </div>
+            </div>
+
+            <!-- Airtable Connection -->
+            <div class="input-group" id="airtable-group" style="display: none;">
+                <div class="field-row">
+                    <label for="airtable-api-key-input">Airtable API Key:</label>
+                    <input 
+                        type="password" 
+                        id="airtable-api-key-input" 
+                        placeholder="Enter your Airtable API key"
+                        autocomplete="off"
+                    />
+                </div>
+                <div class="field-row">
+                    <label for="airtable-base-id-input">Airtable Base ID:</label>
+                    <input 
+                        type="text" 
+                        id="airtable-base-id-input" 
+                        placeholder="Enter your Airtable Base ID"
+                        autocomplete="off"
+                    />
+                </div>
+                <div class="field-row">
+                    <label for="airtable-table-name-input">Table Name:</label>
+                    <input 
+                        type="text" 
+                        id="airtable-table-name-input" 
+                        placeholder="Enter the table name"
+                        autocomplete="off"
+                    />
+                </div>
+                <div class="button-row">
+                    <button id="airtable-connect-btn">Connect to Airtable</button>
+                    <button id="airtable-clear-btn" class="clear-btn">Clear Saved Data</button>
+                </div>
+            </div>
+
+            <!-- GitHub Connection -->
+            <div class="input-group" id="github-group" style="display: none;">
+                <div class="field-row">
+                    <label for="github-token-input">GitHub Personal Access Token:</label>
+                    <input 
+                        type="password" 
+                        id="github-token-input" 
+                        placeholder="Enter your GitHub PAT"
+                        autocomplete="off"
+                    />
+                </div>
+                <div class="field-row">
+                    <label for="github-owner-input">Repository Owner:</label>
+                    <input 
+                        type="text" 
+                        id="github-owner-input" 
+                        placeholder="Enter username or organization"
+                        autocomplete="off"
+                    />
+                </div>
+                <div class="field-row">
+                    <label for="github-repo-input">Repository Name:</label>
+                    <input 
+                        type="text" 
+                        id="github-repo-input" 
+                        placeholder="Enter repository name"
+                        autocomplete="off"
+                    />
+                </div>
+                <div class="button-row">
+                    <button id="github-connect-btn">Connect to GitHub</button>
+                    <button id="github-clear-btn" class="clear-btn">Clear Saved Data</button>
+                </div>
+            </div>
+
+            <!-- Azure DevOps Connection -->
+            <div class="input-group" id="azure-devops-group" style="display: none;">
+                <div class="field-row">
+                    <label for="azure-devops-token-input">Azure DevOps Personal Access Token:</label>
+                    <input 
+                        type="password" 
+                        id="azure-devops-token-input" 
+                        placeholder="Enter your Azure DevOps PAT"
+                        autocomplete="off"
+                    />
+                </div>
+                <div class="field-row">
+                    <label for="azure-devops-org-input">Organization:</label>
+                    <input 
+                        type="text" 
+                        id="azure-devops-org-input" 
+                        placeholder="Enter your organization name"
+                        autocomplete="off"
+                    />
+                </div>
+                <div class="field-row">
+                    <label for="azure-devops-project-input">Project:</label>
+                    <input 
+                        type="text" 
+                        id="azure-devops-project-input" 
+                        placeholder="Enter your project name"
+                        autocomplete="off"
+                    />
+                </div>
+                <div class="button-row">
+                    <button id="azure-devops-connect-btn">Connect to Azure DevOps</button>
+                    <button id="azure-devops-clear-btn" class="clear-btn">Clear Saved Data</button>
+                </div>
+            </div>
+
+            <!-- Jira Connection -->
+            <div class="input-group" id="jira-group" style="display: none;">
+                <div class="field-row">
+                    <label for="jira-type-select">Jira Type:</label>
+                    <select id="jira-type-select">
+                        <option value="cloud">Jira Cloud</option>
+                        <option value="server">Jira Server/Data Center</option>
+                    </select>
+                </div>
+                <div class="field-row">
+                    <label for="jira-url-input">Jira URL:</label>
+                    <input 
+                        type="url" 
+                        id="jira-url-input" 
+                        placeholder="https://company.atlassian.net or https://jira.company.com"
+                        autocomplete="off"
+                    />
+                </div>
+                <div class="field-row">
+                    <label for="jira-email-input">Email/Username:</label>
+                    <input 
+                        type="text" 
+                        id="jira-email-input" 
+                        placeholder="Enter your email (Cloud) or username (Server)"
+                        autocomplete="off"
+                    />
+                </div>
+                <div class="field-row">
+                    <label for="jira-token-input">API Token/Password:</label>
+                    <input 
+                        type="password" 
+                        id="jira-token-input" 
+                        placeholder="Enter your API token (Cloud) or password (Server)"
+                        autocomplete="off"
+                    />
+                </div>
+                <div class="button-row">
+                    <button id="jira-connect-btn">Connect to Jira</button>
+                    <button id="jira-clear-btn" class="clear-btn">Clear Saved Data</button>
+                </div>
+            </div>
+
+            <!-- Project/Table Selection -->
             <div class="input-group" id="project-group" style="display: none;">
-                <label for="project-select">Select Project:</label>
+                <label for="project-select" id="project-select-label">Select Project:</label>
                 <select id="project-select" disabled>
                     <option value="">-- Select a project --</option>
                 </select>
@@ -45,6 +213,11 @@
         </div>
 
         <div id="gantt-container"></div>
+
+        <div class="data-grid-section hidden">
+            <h3>Task Data Grid</h3>
+            <div id="grid-container"></div>
+        </div>
     </div>
 
     <!-- Field Mapping Dialog -->
@@ -81,6 +254,15 @@
         </div>
     </div>
 
+    <!-- Service files -->
+    <script src="services/asana-service.js"></script>
+    <script src="services/airtable-service.js"></script>
+    <script src="services/github-service.js"></script>
+    <script src="services/azure-devops-service.js"></script>
+    <script src="services/jira-service.js"></script>
+    <script src="services/field-mapping-service.js"></script>
+    
+    <!-- Main application -->
     <script src="app.js"></script>
 </body>
 </html>
