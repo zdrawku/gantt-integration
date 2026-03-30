@@ -1,5 +1,7 @@
 # Project Gantt Chart Viewer
 
+https://zdrawku.github.io/gantt-integration/
+
 A web application that connects to Asana or Airtable to visualize project data as interactive Gantt charts.
 
 ## Features
